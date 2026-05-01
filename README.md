@@ -1,40 +1,69 @@
-﻿# tfg-verethique
+﻿# Verethiqué – TFG
 
-Trabajo final de grado Verethique (UOC).
+Trabajo Final de Grado (TFG) desarrollado en la UOC.
+El proyecto consiste en una plataforma web orientada a la consulta y revisión documental de prácticas sostenibles en moda de cercanía.
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+La aplicación permite visualizar un directorio de marcas, gestionar solicitudes de revisión y trabajar con criterios ASG (ambiental, social y gobernanza), aunque en esta versión se trata de un MVP con funcionalidades limitadas.
+
+## Tecnologías utilizadas
+
+- Next.js (framework principal)
+- React
+- Supabase (base de datos y backend)
+- TypeScript
+- CSS / estilos propios
 
 ## Getting Started
 
-First, run the development server:
+Para ejecutar el proyecto en local:
 
 ```bash
 npm run dev
-# or
+# o
 yarn dev
-# or
+# o
 pnpm dev
-# or
+# o
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Después, abrir en el navegador:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+👉 http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+La aplicación se actualizará automáticamente al modificar los archivos del proyecto (por ejemplo app/page.tsx).
+
+## Estructura del proyecto (simplificada)
+
+/app → páginas y rutas principales
+/components → componentes reutilizables
+/lib → conexión con Supabase y utilidades
+/admin → panel de administración (acceso limitado / simulado)
+
+## Funcionalidades principales
+
+Directorio de marcas y comercios textiles
+Filtros y búsqueda por distintas variables
+Sistema de valoración basado en criterios ASG
+Envío de solicitudes de revisión documental
+Panel de administración básico para gestión de datos
+
+## Notas
+
+Se trata de una primera versión (MVP), por lo que algunas funcionalidades están simplificadas o en desarrollo.
+El acceso al panel de administración está simulado y no incluye autenticación completa.
+La base de datos se gestiona mediante Supabase.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+Para más información sobre las tecnologías utilizadas:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+https://nextjs.org/docs
+https://supabase.com/docs
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy
 
-## Deploy on Vercel
+El despliegue puede realizarse fácilmente en Vercel, aunque también es posible utilizar otros servicios compatibles con Next.js.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Más info:
+https://nextjs.org/docs/deployment

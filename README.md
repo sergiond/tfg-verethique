@@ -13,7 +13,7 @@ La aplicación permite visualizar un directorio de marcas, gestionar solicitudes
 - TypeScript
 - CSS / estilos propios
 
-## Getting Started
+## Como empezar
 
 Para ejecutar el proyecto en local:
 
@@ -54,14 +54,14 @@ Se trata de una primera versión (MVP), por lo que algunas funcionalidades está
 El acceso al panel de administración está simulado y no incluye autenticación completa.
 La base de datos se gestiona mediante Supabase.
 
-## Learn More
+## Documentación
 
 Para más información sobre las tecnologías utilizadas:
 
 https://nextjs.org/docs
 https://supabase.com/docs
 
-## Deploy
+## más sobre despliegues
 
 El despliegue puede realizarse fácilmente en Vercel, aunque también es posible utilizar otros servicios compatibles con Next.js.
 

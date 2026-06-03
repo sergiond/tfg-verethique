@@ -27,7 +27,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Verethiqué | Inteligencia en Sostenibilidad",
+  title: "Verethique | Directorio de moda sostenible",
   description: "Directorio editorial de revisión ASG, transparencia, trazabilidad, circularidad y retail textil.",
 };
 

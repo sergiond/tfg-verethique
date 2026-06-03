@@ -28,7 +28,6 @@ export function ManifestoSection() {
                     start: "top 70%",
                 },
                 y: 60,
-                opacity: 0,
                 duration: 1.5,
                 stagger: 0.3,
                 ease: "power3.out"
@@ -52,11 +51,11 @@ export function ManifestoSection() {
 
             <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-8 text-center flex flex-col items-center">
                 <div className="manifesto-line mb-10 flex items-center justify-center gap-4">
-                    <span className="w-12 h-px bg-[#CC5833]" />
-                    <p className="font-mono text-xs md:text-sm tracking-[0.3em] uppercase text-[#CC5833]">
+                    <span className="w-12 h-px bg-[#D9653E]" />
+                    <p className="font-mono text-xs md:text-sm tracking-[0.3em] uppercase text-[#D9653E]">
                         Nuestra base
                     </p>
-                    <span className="w-12 h-px bg-[#CC5833]" />
+                    <span className="w-12 h-px bg-[#D9653E]" />
                 </div>
 
                 <div className="overflow-hidden mb-8 md:mb-10">

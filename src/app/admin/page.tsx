@@ -106,6 +106,8 @@ const SESSION_KEY = "me_admin_logged";
 const REQUESTS_TABLE = "review_requests";
 const BRAND_SELECT_COLUMNS = "id, slug, nombre, eslogan, descripcion, calificacion_general, ambiental, social, gobernanza, ambiental_indicadores, social_indicadores, gobernanza_indicadores, categorias, tipo_tienda, pais, ciudad, web, instagram, published";
 const BRAND_SELECT_LEGACY_COLUMNS = "id, slug, nombre, eslogan, descripcion, calificacion_general, ambiental, social, gobernanza, categorias, tipo_tienda, pais, ciudad, web, instagram, published";
+const ADMIN_INPUT_CLASS = "h-11 rounded-[1.1rem] border-0 bg-[#F2F0E9]/65 px-4 shadow-none focus-visible:ring-2 focus-visible:ring-[#2E4036]/25";
+const ADMIN_TEXTAREA_CLASS = "min-h-[110px] rounded-[1.1rem] border-0 bg-[#F2F0E9]/65 px-4 py-3 shadow-none focus-visible:ring-2 focus-visible:ring-[#2E4036]/25";
 
 const parseList = (value: string[] | string | null | undefined): string[] => {
     if (Array.isArray(value)) return value.filter(Boolean);
@@ -209,15 +211,30 @@ const toBrandForm = (brand: BrandRow): BrandFormState => {
 };
 
 const statusMap: Record<ReviewStatus, { label: string; badge: string }> = {
-    pendiente: { label: "Pendiente", badge: "bg-amber-100 text-amber-800 border-amber-200" },
-    aprobada: { label: "Aprobada", badge: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-    rechazada: { label: "Rechazada", badge: "bg-rose-100 text-rose-800 border-rose-200" },
+    pendiente: { label: "Pendiente", badge: "bg-amber-100 text-amber-800" },
+    aprobada: { label: "Aprobada", badge: "bg-emerald-100 text-emerald-800" },
+    rechazada: { label: "Rechazada", badge: "bg-rose-100 text-rose-800" },
 };
 
 const dimensionLabels: Record<ASGDimension, string> = {
     ambiental: "Ambiental",
     social: "Social",
     gobernanza: "Gobernanza",
+};
+
+const getBrandInsertErrorMessage = (error: { code?: string; message?: string }) => {
+    const message = error.message ?? "Error desconocido de Supabase.";
+    const isOldScoreConstraint =
+        error.code === "23514" &&
+        (message.includes("brands_ambiental_check") ||
+            message.includes("brands_social_check") ||
+            message.includes("brands_gobernanza_check"));
+
+    if (isOldScoreConstraint) {
+        return "Solicitud aprobada, pero la base de datos aun no permite puntuaciones ASG a 0. Ejecuta la migracion de restricciones 0-5 del README y vuelve a aprobar la solicitud.";
+    }
+
+    return `Solicitud aprobada, pero fallo la creacion automatica del establecimiento. Supabase devolvio: ${message}`;
 };
 
 export default function AdminDashboard() {
@@ -456,7 +473,7 @@ export default function AdminDashboard() {
             if (insertError) {
                 setSavingReview(false);
                 console.error("Error creando establecimiento desde solicitud aprobada", insertError);
-                return setAlert("Solicitud aprobada, pero falló la creación automática del establecimiento. Revisa la migración ASG en Supabase.", "");
+                return setAlert("", getBrandInsertErrorMessage(insertError));
             }
             brandForEdit = insertedBrand as BrandRow;
         }
@@ -547,7 +564,7 @@ export default function AdminDashboard() {
                     <h1 className="font-serif text-4xl md:text-5xl font-light tracking-tight text-[#1A1A1A]">Panel administrativo</h1>
                     <p className="mt-2 text-[#1A1A1A]/70">Validación de solicitudes y gestión del directorio.</p>
                 </header>
-                <section className="mx-auto mt-10 w-full max-w-md rounded-2xl border border-[#D1CFC7] bg-white p-6 shadow-sm">
+                <section className="mx-auto mt-10 w-full max-w-md rounded-[1.5rem] bg-white/80 p-6 shadow-[0_18px_45px_rgba(26,26,26,0.05)]">
                     <h2 className="text-sm font-semibold text-[#1A1A1A]">Acceso restringido</h2>
                     <form onSubmit={handleLogin} className="mt-4 space-y-4">
                         <Field label="Usuario" htmlFor="login-user"><Input id="login-user" value={loginUser} onChange={(e) => setLoginUser(e.target.value)} required /></Field>
@@ -574,13 +591,13 @@ export default function AdminDashboard() {
             </div>
 
             {(statusInfo || statusError) && (
-                <div className={`mb-6 rounded-xl border px-4 py-3 text-sm ${statusError ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+                <div className={`mb-6 rounded-[1.25rem] px-4 py-3 text-sm ${statusError ? "bg-rose-50 text-rose-800" : "bg-emerald-50 text-emerald-800"}`}>
                     {statusError || statusInfo}
                 </div>
             )}
 
             {isAsgSchemaReady === false && (
-                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div className="mb-6 rounded-[1.25rem] bg-amber-50 px-4 py-3 text-sm text-amber-900">
                     Migración ASG pendiente en Supabase. Las marcas se pueden leer, pero los checks no se pueden guardar hasta añadir las columnas `ambiental_indicadores`, `social_indicadores` y `gobernanza_indicadores`.
                 </div>
             )}
@@ -593,7 +610,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr] mb-10">
-                <section className="rounded-2xl border border-[#D1CFC7] bg-white p-5 shadow-sm">
+                <section className="rounded-[1.5rem] bg-white/70 p-5">
                     <div className="mb-3 flex items-center justify-between gap-3">
                         <h2 className="text-sm font-semibold text-[#1A1A1A]">Solicitudes recibidas</h2>
                         <Button variant="ghost" size="sm" onClick={loadRequests} disabled={loadingRequests}>{loadingRequests ? "Cargando..." : "Recargar"}</Button>
@@ -603,10 +620,10 @@ export default function AdminDashboard() {
                             const currentStatus = req.status ?? "pendiente";
                             const badge = statusMap[currentStatus];
                             return (
-                                <button key={req.id} type="button" onClick={() => { setSelectedRequestId(req.id); setAdminNotesDraft(req.admin_notes ?? ""); }} className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${selectedRequestId === req.id ? "border-[#2E4036] bg-[#F2F0E9]" : "border-[#D1CFC7] hover:bg-[#F2F0E9]/40"}`}>
+                                <button key={req.id} type="button" onClick={() => { setSelectedRequestId(req.id); setAdminNotesDraft(req.admin_notes ?? ""); }} className={`w-full rounded-[1.25rem] px-3 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4036]/30 ${selectedRequestId === req.id ? "bg-[#F2F0E9] shadow-[inset_4px_0_0_#2E4036]" : "hover:bg-[#F2F0E9]/55"}`}>
                                     <div className="mb-2 flex items-center justify-between gap-2">
                                         <p className="font-semibold text-sm text-[#1A1A1A]">{req.brand_name || "Marca sin especificar"}</p>
-                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${badge.badge}`}>{badge.label}</span>
+                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.badge}`}>{badge.label}</span>
                                     </div>
                                     <p className="text-xs text-[#1A1A1A]/60">{req.applicant_name || "Solicitante"} · {req.applicant_email || "sin email"}</p>
                                 </button>
@@ -615,7 +632,7 @@ export default function AdminDashboard() {
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-[#D1CFC7] bg-white p-6 shadow-sm">
+                <section className="rounded-[1.5rem] bg-white/70 p-6">
                     {!selectedRequest ? <p className="text-sm text-[#1A1A1A]/60">Selecciona una solicitud para revisarla.</p> : (
                         <>
                             <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
@@ -623,7 +640,7 @@ export default function AdminDashboard() {
                                     <h2 className="font-serif text-3xl font-light text-[#1A1A1A]">{selectedRequest.brand_name || "Solicitud de revisión"}</h2>
                                     <p className="mt-1 text-sm text-[#1A1A1A]/60">{selectedRequest.applicant_name || "Solicitante"} · {selectedRequest.applicant_email || "sin email"}</p>
                                 </div>
-                                <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${statusMap[(selectedRequest.status ?? "pendiente") as ReviewStatus].badge}`}>{statusMap[(selectedRequest.status ?? "pendiente") as ReviewStatus].label}</span>
+                                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusMap[(selectedRequest.status ?? "pendiente") as ReviewStatus].badge}`}>{statusMap[(selectedRequest.status ?? "pendiente") as ReviewStatus].label}</span>
                             </div>
                             <div className="grid gap-4 md:grid-cols-2 mb-6">
                                 <InfoField label="Motivo" value={selectedRequest.reason || "Sin motivo"} />
@@ -638,7 +655,7 @@ export default function AdminDashboard() {
                             </div>
                             <div className="mb-6">
                                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-[#1A1A1A]/50">Mensaje del solicitante</h3>
-                                <p className="rounded-xl border border-[#D1CFC7] bg-[#F2F0E9]/40 px-4 py-3 text-sm leading-relaxed text-[#1A1A1A]/80">{selectedRequest.message || "Sin mensaje adicional."}</p>
+                                <p className="rounded-[1.25rem] bg-[#F2F0E9]/55 px-4 py-3 text-sm leading-relaxed text-[#1A1A1A]/80">{selectedRequest.message || "Sin mensaje adicional."}</p>
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="admin-notes" className="text-xs font-semibold uppercase tracking-widest text-[#1A1A1A]/50">Notas de revisión interna</label>
@@ -656,14 +673,14 @@ export default function AdminDashboard() {
             </div>
 
             <section className="grid gap-6 lg:grid-cols-[1.2fr_1.8fr]">
-                <section className="rounded-2xl border border-[#D1CFC7] bg-white p-5 shadow-sm">
+                <section className="rounded-[1.5rem] bg-white/70 p-5">
                     <div className="mb-3 flex items-center justify-between gap-3">
                         <h2 className="text-sm font-semibold text-[#1A1A1A]">Establecimientos</h2>
                         <Button variant="ghost" size="sm" onClick={loadBrands}>Recargar</Button>
                     </div>
                     <div className="max-h-[500px] space-y-2 overflow-auto pr-1">
                         {brands.length === 0 ? <p className="text-sm text-[#1A1A1A]/60">No hay establecimientos todavía.</p> : brands.map((b) => (
-                            <button key={b.id} type="button" onClick={() => { setSelectedBrandId(b.id); setBrandForm(toBrandForm(b)); }} className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${selectedBrandId === b.id ? "border-[#2E4036] bg-[#F2F0E9]" : "border-[#D1CFC7] hover:bg-[#F2F0E9]/40"}`}>
+                            <button key={b.id} type="button" onClick={() => { setSelectedBrandId(b.id); setBrandForm(toBrandForm(b)); }} className={`w-full rounded-[1.25rem] px-3 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E4036]/30 ${selectedBrandId === b.id ? "bg-[#F2F0E9] shadow-[inset_4px_0_0_#2E4036]" : "hover:bg-[#F2F0E9]/55"}`}>
                                 <p className="font-semibold text-sm text-[#1A1A1A]">{b.nombre || "Sin nombre"}</p>
                                 <p className="text-xs text-[#1A1A1A]/60">{b.slug || "sin-slug"}</p>
                             </button>
@@ -671,18 +688,18 @@ export default function AdminDashboard() {
                     </div>
                 </section>
 
-                <form id="brand-form-panel" onSubmit={saveBrand} className="rounded-2xl border border-[#D1CFC7] bg-white p-6 shadow-sm space-y-4">
+                <form id="brand-form-panel" onSubmit={saveBrand} className="space-y-4 rounded-[1.5rem] bg-white/70 p-6">
                     <div className="flex items-center justify-between gap-2">
                         <h2 className="text-sm font-semibold text-[#1A1A1A]">{brandForm.id ? "Editar establecimiento" : "Crear establecimiento"}</h2>
                         <Button type="button" variant="ghost" size="sm" onClick={() => { setSelectedBrandId(null); setBrandForm(emptyBrandForm()); }}>Limpiar</Button>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
-                        <Field label="Slug" htmlFor="slug"><Input id="slug" value={brandForm.slug} onChange={(e) => setBrandForm((p) => ({ ...p, slug: e.target.value }))} required /></Field>
-                        <Field label="Nombre" htmlFor="nombre"><Input id="nombre" value={brandForm.nombre} onChange={(e) => setBrandForm((p) => ({ ...p, nombre: e.target.value }))} required /></Field>
+                        <Field label="Slug" htmlFor="slug"><Input id="slug" className={ADMIN_INPUT_CLASS} value={brandForm.slug} onChange={(e) => setBrandForm((p) => ({ ...p, slug: e.target.value }))} required /></Field>
+                        <Field label="Nombre" htmlFor="nombre"><Input id="nombre" className={ADMIN_INPUT_CLASS} value={brandForm.nombre} onChange={(e) => setBrandForm((p) => ({ ...p, nombre: e.target.value }))} required /></Field>
                     </div>
-                    <Field label="Eslogan" htmlFor="eslogan"><Input id="eslogan" value={brandForm.eslogan} onChange={(e) => setBrandForm((p) => ({ ...p, eslogan: e.target.value }))} /></Field>
-                    <Field label="Descripción" htmlFor="descripcion"><Textarea id="descripcion" className="min-h-[100px]" value={brandForm.descripcion} onChange={(e) => setBrandForm((p) => ({ ...p, descripcion: e.target.value }))} /></Field>
-                    <div className="rounded-xl border border-[#D1CFC7] bg-[#F2F0E9]/30 p-4">
+                    <Field label="Eslogan" htmlFor="eslogan"><Input id="eslogan" className={ADMIN_INPUT_CLASS} value={brandForm.eslogan} onChange={(e) => setBrandForm((p) => ({ ...p, eslogan: e.target.value }))} /></Field>
+                    <Field label="Descripción" htmlFor="descripcion"><Textarea id="descripcion" className={ADMIN_TEXTAREA_CLASS} value={brandForm.descripcion} onChange={(e) => setBrandForm((p) => ({ ...p, descripcion: e.target.value }))} /></Field>
+                    <div className="rounded-[1.5rem] bg-[#F2F0E9]/45 p-4">
                         <div className="mb-4 grid gap-3 md:grid-cols-4">
                             <ScoreBox label="Ambiental" value={calculatedScores.ambiental} />
                             <ScoreBox label="Social" value={calculatedScores.social} />
@@ -701,20 +718,23 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
-                        <Field label="Categorías (coma)" htmlFor="categorias"><Input id="categorias" value={brandForm.categorias} onChange={(e) => setBrandForm((p) => ({ ...p, categorias: e.target.value }))} /></Field>
+                        <Field label="Categorías (coma)" htmlFor="categorias"><Input id="categorias" className={ADMIN_INPUT_CLASS} value={brandForm.categorias} onChange={(e) => setBrandForm((p) => ({ ...p, categorias: e.target.value }))} /></Field>
                         <div className="space-y-2"><p className="text-sm font-medium">Tipo tienda</p>
                             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={brandForm.tipo_tienda_online} onChange={(e) => setBrandForm((p) => ({ ...p, tipo_tienda_online: e.target.checked }))} /> Online</label>
                             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={brandForm.tipo_tienda_fisica} onChange={(e) => setBrandForm((p) => ({ ...p, tipo_tienda_fisica: e.target.checked }))} /> Física</label>
                         </div>
                     </div>
                     <div className="grid gap-3 md:grid-cols-3">
-                        <Field label="País (ISO2)" htmlFor="pais"><Input id="pais" maxLength={2} value={brandForm.pais} onChange={(e) => setBrandForm((p) => ({ ...p, pais: e.target.value }))} /></Field>
-                        <Field label="Ciudad" htmlFor="ciudad"><Input id="ciudad" value={brandForm.ciudad} onChange={(e) => setBrandForm((p) => ({ ...p, ciudad: e.target.value }))} /></Field>
-                        <label className="mt-7 flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={brandForm.published} onChange={(e) => setBrandForm((p) => ({ ...p, published: e.target.checked }))} /> Publicada</label>
+                        <Field label="País (ISO2)" htmlFor="pais"><Input id="pais" className={ADMIN_INPUT_CLASS} maxLength={2} value={brandForm.pais} onChange={(e) => setBrandForm((p) => ({ ...p, pais: e.target.value }))} /></Field>
+                        <Field label="Ciudad" htmlFor="ciudad"><Input id="ciudad" className={ADMIN_INPUT_CLASS} value={brandForm.ciudad} onChange={(e) => setBrandForm((p) => ({ ...p, ciudad: e.target.value }))} /></Field>
+                        <PublicationSwitch
+                            checked={brandForm.published}
+                            onCheckedChange={(published) => setBrandForm((p) => ({ ...p, published }))}
+                        />
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
-                        <Field label="Web" htmlFor="web"><Input id="web" type="url" value={brandForm.web} onChange={(e) => setBrandForm((p) => ({ ...p, web: e.target.value }))} /></Field>
-                        <Field label="Instagram" htmlFor="instagram"><Input id="instagram" value={brandForm.instagram} onChange={(e) => setBrandForm((p) => ({ ...p, instagram: e.target.value }))} /></Field>
+                        <Field label="Web" htmlFor="web"><Input id="web" className={ADMIN_INPUT_CLASS} type="url" value={brandForm.web} onChange={(e) => setBrandForm((p) => ({ ...p, web: e.target.value }))} /></Field>
+                        <Field label="Instagram" htmlFor="instagram"><Input id="instagram" className={ADMIN_INPUT_CLASS} value={brandForm.instagram} onChange={(e) => setBrandForm((p) => ({ ...p, instagram: e.target.value }))} /></Field>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 pt-2">
                         <Button type="submit" disabled={savingBrand}>{savingBrand ? "Guardando..." : "Guardar"}</Button>
@@ -728,7 +748,7 @@ export default function AdminDashboard() {
 
 function MetricCard({ title, value, accent }: { title: string; value: number; accent?: string }) {
     return (
-        <div className="rounded-xl border border-[#D1CFC7] bg-white p-5">
+        <div className="rounded-[1.5rem] bg-white/70 p-5">
             <h3 className="text-sm font-medium text-[#1A1A1A]/60">{title}</h3>
             <p className={`mt-2 text-3xl font-bold ${accent ?? "text-[#1A1A1A]"}`}>{value}</p>
         </div>
@@ -737,7 +757,7 @@ function MetricCard({ title, value, accent }: { title: string; value: number; ac
 
 function InfoField({ label, value }: { label: string; value: string }) {
     return (
-        <div className="rounded-xl border border-[#D1CFC7] bg-[#F2F0E9]/40 px-4 py-3">
+        <div className="rounded-[1.25rem] bg-[#F2F0E9]/55 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#1A1A1A]/50">{label}</p>
             <p className="mt-1 text-sm text-[#1A1A1A]/80">{value}</p>
         </div>
@@ -755,9 +775,52 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor: string; c
 
 function ScoreBox({ label, value }: { label: string; value: number | string }) {
     return (
-        <div className="rounded-lg border border-[#D1CFC7] bg-white px-3 py-2">
+        <div className="rounded-[1rem] bg-white/75 px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1A1A1A]/50">{label}</p>
             <p className="mt-1 text-lg font-bold text-[#1A1A1A]">{value}</p>
+        </div>
+    );
+}
+
+function PublicationSwitch({
+    checked,
+    onCheckedChange,
+}: {
+    checked: boolean;
+    onCheckedChange: (checked: boolean) => void;
+}) {
+    const statusId = "published-status";
+
+    return (
+        <div className="rounded-[1.25rem] bg-[#F2F0E9]/55 px-4 py-3">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <p className="text-sm font-medium text-[#1A1A1A]/80">Publicación</p>
+                    <p id={statusId} className="mt-1 text-xs leading-relaxed text-[#1A1A1A]/60">
+                        {checked ? "Visible en el directorio y en la ficha pública." : "Guardada en admin, oculta al público."}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    role="switch"
+                    aria-checked={checked}
+                    aria-describedby={statusId}
+                    onClick={() => onCheckedChange(!checked)}
+                    className={`relative h-7 w-12 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#2E4036]/40 ${
+                        checked ? "bg-[#2E4036]" : "bg-[#D1CFC7]"
+                    }`}
+                >
+                    <span
+                        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${
+                            checked ? "left-6" : "left-1"
+                        }`}
+                    />
+                    <span className="sr-only">{checked ? "Despublicar marca" : "Publicar marca"}</span>
+                </button>
+            </div>
+            <p className={`mt-3 text-xs font-semibold uppercase tracking-widest ${checked ? "text-emerald-700" : "text-amber-700"}`}>
+                {checked ? "Publicada" : "No publicada"}
+            </p>
         </div>
     );
 }
@@ -772,7 +835,7 @@ function IndicatorChecklist({
     onToggle: (dimension: ASGDimension, indicatorId: string) => void;
 }) {
     return (
-        <fieldset className="rounded-lg border border-[#D1CFC7] bg-white p-4">
+        <fieldset className="rounded-[1.25rem] bg-white/75 p-4">
             <legend className="px-1 text-xs font-semibold uppercase tracking-widest text-[#1A1A1A]/60">
                 {dimensionLabels[dimension]}
             </legend>
@@ -787,7 +850,7 @@ function IndicatorChecklist({
                         />
                         <span>
                             <span className="block text-sm font-semibold text-[#1A1A1A]">{indicator.title}</span>
-                            <span className="mt-1 block text-xs leading-relaxed text-[#1A1A1A]/60">{indicator.evidenceHint}</span>
+                            <span className="mt-1 block text-xs leading-relaxed text-[#1A1A1A]/60">{indicator.description}</span>
                         </span>
                     </label>
                 ))}

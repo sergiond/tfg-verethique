@@ -1,47 +1,47 @@
-/**
- * Categorías de valoración general de las marcas.
- * Estas categorías concluyen el sistema de calificaciones (Genial, Bueno, Regular, Evitar)
- * que luego se trasladan en los colores y emojis de la interfaz.
+﻿/**
+ * Categorias de valoracion general de las marcas.
+ * Se usan para mostrar el resultado final con colores e iconos en la interfaz.
  */
 export type RatingCategory = "Genial" | "Bueno" | "Regular" | "Evitar";
+
 /**
- * Estructura de puntuaciones Ambientales, Sociales y de Gobernanza (ASG / ESG en inglés).
- * Cada puntuación se evalúa de 0 a 5.
+ * Puntuaciones ambientales, sociales y de gobernanza.
+ * Cada dimension se evalua de 0 a 5 segun los indicadores marcados.
  */
 export interface ASGScores {
-    /** Puntuación de impacto ambiental (emisiones, materiales, etc.) (0-5) */
+    /** Impacto ambiental: materiales, residuos, energia y agua. */
     ambiental: number;
-    /** Puntuación de impacto social (condiciones laborales, salarios, etc.) (0-5) */
+    /** Impacto social: condiciones laborales, seguridad, diversidad y comunidad. */
     social: number;
-    /** Puntuación de gobernanza y transparencia (auditorías, trazabilidad, etc.) (0-5) */
+    /** Gobernanza: transparencia, trazabilidad, etica y metodologia publicada. */
     gobernanza: number;
 }
 
 /**
- * LA Interfaz principal que define el modelo de datos de una Marca dentro del directorio.
- * Este objeto contiene toda la telemetría ASG y la información editorial.
+ * Modelo de marca que consume la interfaz publica.
+ * La capa de Supabase se normaliza a este formato antes de pintar las tarjetas.
  */
 export interface Brand {
-    /** Identificador único de la marca (ej: br-001) */
+    /** Identificador unico de la marca. */
     id: string;
-    /** Nombre comercial de la marca */
+    /** Nombre comercial de la marca. */
     name: string;
-    /** Categoría comercial (ej: Ropa Deportiva, Streetwear, etc.) */
+    /** Categoria comercial principal. */
     category: string;
-    /** Eslogan o frase breve de posicionamiento */
+    /** Eslogan o frase breve de presentacion. */
     slogan: string;
-    /** Descripción detallada o revisión editorial de la marca */
+    /** Descripcion visible en directorio y ficha. */
     description: string;
-    /** Valoración semántica general calculada en el sistema */
+    /** Valoracion general calculada a partir de las puntuaciones ASG. */
     overallRating: RatingCategory;
-    /** Desglose de puntuaciones de la auditoría ASG */
+    /** Desglose de puntuaciones por dimension. */
     asgScores: ASGScores;
-    /** Ruta de la imagen de fondo/portada de la marca (asset local o URL) */
+    /** Ruta local o URL de imagen asociada a la marca. */
     imageUrl: string;
-    /** Determina si la marca certifica productos libres de explotación animal */
+    /** Indica si la marca declara productos veganos. */
     isVegan: boolean;
-    /** Determina si la marca posee certificación de comercio justo (FairTrade) */
+    /** Indica si la marca declara comercio justo. */
     isFairTrade: boolean;
-    /** Lista de los principales materiales declarados (ej: Algodón Orgánico, PET Reciclado) */
+    /** Materiales principales declarados. */
     materials: string[];
 }

@@ -94,8 +94,8 @@
   --primary: #2E4036;
   --primary-foreground: #F2F0E9;
 
-  /* Arcilla (acento) */
-  --accent: #CC5833;
+  /* Arcilla (acento AA sobre fondos claros) */
+  --accent: #9E3F24;
   --accent-foreground: #F2F0E9;
 
   --secondary: #E5E3DB;
@@ -116,7 +116,7 @@
   --rating-genial-fg: #F2F0E9;
   --rating-bueno-bg: #4A6356;
   --rating-bueno-fg: #F2F0E9;
-  --rating-regular-bg: #CC5833;
+  --rating-regular-bg: #9E3F24;
   --rating-regular-fg: #F2F0E9;
   --rating-evitar-bg: #1A1A1A;
   --rating-evitar-fg: #F2F0E9;
@@ -151,8 +151,8 @@
   --secondary-foreground: #F2F0E9;
   --muted: #333333;
   --muted-foreground: #A1A1AA;
-  --accent: #CC5833;
-  --accent-foreground: #F2F0E9;
+  --accent: #D9653E;
+  --accent-foreground: #1A1A1A;
   --destructive: #B91C1C;
   --border: #333333;
   --input: #333333;

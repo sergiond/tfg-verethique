@@ -24,7 +24,7 @@ export function BrandCard({ brand }: { brand: Brand }) {
     // Resuelve el icono desde el diccionario `ratingIcons` según la valoración de la marca.
     const RatingIcon = ratingIcons[brand.overallRating];
 
-    // Fallback de imagen textil pseudoaleatoria por marca (estable por id).
+    // Imagen local estable para marcas sin imagen propia.
     const fallbackImages = ["/img/moodboard-1.jpg", "/img/moodboard-2.jpg", "/img/moodboard-3.jpg"];
     const hash = Array.from(brand.id).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
     const fallbackImage = fallbackImages[hash % fallbackImages.length];
@@ -60,21 +60,21 @@ export function BrandCard({ brand }: { brand: Brand }) {
             {/* Contenido editorial */}
             <div className="p-6 md:p-8 flex flex-col flex-grow bg-white">
                 <div className="flex justify-between items-start mb-3">
-                    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[#CC5833]">{brand.category}</p>
+                    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9E3F24]">{brand.category}</p>
                 </div>
 
-                <h3 className="font-serif italic text-3xl font-light text-[#1A1A1A] mb-4 group-hover:text-[#CC5833] transition-colors">
+                <h3 className="font-serif italic text-3xl font-light text-[#1A1A1A] mb-4 group-hover:text-[#9E3F24] transition-colors">
                     {brand.name}
                 </h3>
 
                 <div className="flex flex-wrap gap-2 mb-8">
                     {brand.isVegan && (
-                        <span className="font-mono text-[9px] uppercase tracking-widest px-2 py-1 rounded border border-[#1A1A1A]/10 text-[#1A1A1A]/60">
+                        <span className="font-mono text-[9px] uppercase tracking-widest px-2 py-1 rounded border border-[#1A1A1A]/10 text-[#1A1A1A]/70">
                             Vegano
                         </span>
                     )}
                     {brand.isFairTrade && (
-                        <span className="font-mono text-[9px] uppercase tracking-widest px-2 py-1 rounded border border-[#1A1A1A]/10 text-[#1A1A1A]/60">
+                        <span className="font-mono text-[9px] uppercase tracking-widest px-2 py-1 rounded border border-[#1A1A1A]/10 text-[#1A1A1A]/70">
                             Comercio Justo
                         </span>
                     )}
@@ -84,24 +84,24 @@ export function BrandCard({ brand }: { brand: Brand }) {
                 <div className="mt-auto pt-6 border-t border-[#D1CFC7]/50">
                     <div className="grid grid-cols-3 gap-2">
                         <div className="flex flex-col">
-                            <span className="font-mono text-[9px] text-[#1A1A1A]/40 uppercase tracking-widest mb-1.5">Ambiental</span>
+                            <span className="font-mono text-[9px] text-[#1A1A1A]/70 uppercase tracking-widest mb-1.5">Ambiental</span>
                             <div className="flex items-center gap-2">
                                 <span className="font-sans font-bold text-sm text-[#1A1A1A]">{brand.asgScores.ambiental}</span>
-                                <span className="text-[#1A1A1A]/30 text-xs">/5</span>
+                                <span className="text-[#1A1A1A]/70 text-xs">/5</span>
                             </div>
                         </div>
                         <div className="flex flex-col border-l border-[#D1CFC7]/50 pl-2">
-                            <span className="font-mono text-[9px] text-[#1A1A1A]/40 uppercase tracking-widest mb-1.5">Social</span>
+                            <span className="font-mono text-[9px] text-[#1A1A1A]/70 uppercase tracking-widest mb-1.5">Social</span>
                             <div className="flex items-center gap-2">
                                 <span className="font-sans font-bold text-sm text-[#1A1A1A]">{brand.asgScores.social}</span>
-                                <span className="text-[#1A1A1A]/30 text-xs">/5</span>
+                                <span className="text-[#1A1A1A]/70 text-xs">/5</span>
                             </div>
                         </div>
                         <div className="flex flex-col border-l border-[#D1CFC7]/50 pl-2">
-                            <span className="font-mono text-[9px] text-[#1A1A1A]/40 uppercase tracking-widest mb-1.5">Gobernanza</span>
+                            <span className="font-mono text-[9px] text-[#1A1A1A]/70 uppercase tracking-widest mb-1.5">Gobernanza</span>
                             <div className="flex items-center gap-2">
                                 <span className="font-sans font-bold text-sm text-[#1A1A1A]">{brand.asgScores.gobernanza}</span>
-                                <span className="text-[#1A1A1A]/30 text-xs">/5</span>
+                                <span className="text-[#1A1A1A]/70 text-xs">/5</span>
                             </div>
                         </div>
                     </div>
@@ -109,14 +109,14 @@ export function BrandCard({ brand }: { brand: Brand }) {
 
                 {/* Desplegable "Ver más detalles" como en el directorio anterior */}
                 <details className="mt-6 text-sm leading-relaxed text-[#1A1A1A]/80">
-                    <summary className="cursor-pointer text-xs font-semibold underline decoration-[#1A1A1A]/40 underline-offset-4 hover:text-[#CC5833] transition-colors">
+                    <summary className="cursor-pointer text-xs font-semibold underline decoration-[#1A1A1A]/40 underline-offset-4 hover:text-[#9E3F24] transition-colors">
                         Ver más detalles
                     </summary>
                     <p className="mt-3">{detailText}</p>
                 </details>
 
                 <Link
-                    href={`/marca/${brand.id}`}
+                    href={`/marca?id=${encodeURIComponent(brand.id)}`}
                     className="mt-6 inline-flex items-center justify-center rounded-full border border-[#1A1A1A]/20 px-4 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1A1A1A] transition-colors hover:bg-[#1A1A1A] hover:text-white"
                 >
                     Ver ficha de marca

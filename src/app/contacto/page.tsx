@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,22 @@ const hasSupabaseConfig = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabase = hasSupabaseConfig ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 const REQUESTS_TABLE = "review_requests";
+const CONTACT_INPUT_CLASS = "h-12 rounded-[1.15rem] border-0 bg-[#F2F0E9]/75 px-4 text-[#1A1A1A] shadow-none focus-visible:ring-2 focus-visible:ring-[#2E4036]/25";
+const CONTACT_TEXTAREA_CLASS = "rounded-[1.15rem] border-0 bg-[#F2F0E9]/75 px-4 py-3 text-[#1A1A1A] shadow-none focus-visible:ring-2 focus-visible:ring-[#2E4036]/25";
+const CONTACT_SELECT_CLASS = "h-12 w-full rounded-[1.15rem] bg-[#F2F0E9]/75 px-4 text-sm text-[#1A1A1A] outline-none focus-visible:ring-2 focus-visible:ring-[#2E4036]/25";
+
+const reviewChecks = [
+    "Fuente original, fecha de vigencia y trazabilidad del documento.",
+    "Coherencia entre evidencias, afirmaciones públicas y criterios ASG.",
+    "Decisión de revisión con estado y nota interna para seguimiento.",
+];
+
+const reasonByQuery: Record<string, FormState["motivo"]> = {
+    sugerencia: "Sugerir inclusión de nueva marca",
+    greenwashing: "Reportar greenwashing",
+    correccion: "Corregir datos de calificación ASG",
+    revision: "Solicitar revisión documental",
+};
 
 type FormState = {
     nombre: string;
@@ -71,6 +87,14 @@ export default function ContactoPage() {
     const [statusInfo, setStatusInfo] = useState("");
     const [statusError, setStatusError] = useState("");
 
+    useEffect(() => {
+        const queryReason = new URLSearchParams(window.location.search).get("motivo");
+        const selectedReason = queryReason ? reasonByQuery[queryReason] : undefined;
+        if (selectedReason) {
+            setForm((prev) => ({ ...prev, motivo: selectedReason }));
+        }
+    }, []);
+
     const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
         setForm((prev) => ({ ...prev, [key]: value }));
     };
@@ -115,57 +139,67 @@ export default function ContactoPage() {
     };
 
     return (
-        <div className="bg-background min-h-screen">
-            <header className="bg-muted/30 border-b border-border py-16 md:py-24">
-                <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-                    <h1 className="font-serif text-5xl md:text-6xl font-bold tracking-tight mb-6">Estamos aquí.</h1>
-                    <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                        Envía tu solicitud de revisión y la documentación de soporte. El equipo admin validará cada evidencia.
+        <div className="min-h-screen bg-[#F2F0E9] text-[#1A1A1A] selection:bg-[#9E3F24] selection:text-white">
+            <header className="pt-32 pb-10 md:pt-40 md:pb-16">
+                <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:px-8">
+                    <div>
+                        <p className="mb-5 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-[#9E3F24]">
+                            Contacto y revisión documental
+                        </p>
+                        <h1 className="max-w-4xl font-serif text-5xl font-light leading-[0.95] tracking-tight md:text-7xl">
+                            Cuéntanos qué hay que revisar.
+                        </h1>
+                    </div>
+                    <p className="max-w-xl self-end text-lg leading-relaxed text-[#1A1A1A]/70 md:text-xl">
+                        Envía una solicitud con enlaces verificables. El equipo revisa la evidencia antes de actualizar el directorio y la ficha pública.
                     </p>
                 </div>
             </header>
 
-            <main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-                <div className="grid md:grid-cols-2 gap-16">
-                    <div>
-                        <h2 className="font-serif text-3xl font-bold mb-6">Solicitar revisión</h2>
+            <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+                <div className="grid gap-8 lg:grid-cols-[1.6fr_0.9fr]">
+                    <section className="rounded-[2rem] bg-white/70 p-5 md:p-8">
+                        <div className="mb-8 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                            <div>
+                                <h2 className="font-serif text-3xl font-light">Solicitar revisión</h2>
+                                <p className="mt-2 text-sm leading-relaxed text-[#1A1A1A]/70">
+                                    Cuanto más clara sea la fuente, más fácil será validar la solicitud.
+                                </p>
+                            </div>
+                        </div>
 
                         {(statusInfo || statusError) && (
                             <div
-                                className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+                                className={`mb-6 rounded-[1.25rem] px-4 py-3 text-sm ${
                                     statusError
-                                        ? "border-rose-200 bg-rose-50 text-rose-800"
-                                        : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                        ? "bg-rose-50 text-rose-800"
+                                        : "bg-emerald-50 text-emerald-800"
                                 }`}
                             >
                                 {statusError || statusInfo}
                             </div>
                         )}
 
-                        <form className="space-y-6" onSubmit={onSubmit}>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label htmlFor="nombre" className="text-sm font-medium">Nombre</label>
-                                    <Input id="nombre" value={form.nombre} onChange={(e) => setField("nombre", e.target.value)} placeholder="Tu nombre" required />
-                                </div>
-                                <div className="space-y-2">
-                                    <label htmlFor="email" className="text-sm font-medium">Email</label>
-                                    <Input id="email" type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} placeholder="hola@ejemplo.com" required />
-                                </div>
+                        <form className="space-y-5" onSubmit={onSubmit}>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <ContactField label="Nombre" htmlFor="nombre">
+                                    <Input id="nombre" className={CONTACT_INPUT_CLASS} value={form.nombre} onChange={(e) => setField("nombre", e.target.value)} placeholder="Tu nombre" required />
+                                </ContactField>
+                                <ContactField label="Email" htmlFor="email">
+                                    <Input id="email" className={CONTACT_INPUT_CLASS} type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} placeholder="hola@ejemplo.com" required />
+                                </ContactField>
                             </div>
 
-                            <div className="space-y-2">
-                                <label htmlFor="marca" className="text-sm font-medium">Marca / establecimiento (opcional)</label>
-                                <Input id="marca" value={form.marca} onChange={(e) => setField("marca", e.target.value)} placeholder="Nombre de la marca" />
-                            </div>
+                            <ContactField label="Marca / establecimiento" htmlFor="marca" hint="Opcional si la solicitud es general.">
+                                <Input id="marca" className={CONTACT_INPUT_CLASS} value={form.marca} onChange={(e) => setField("marca", e.target.value)} placeholder="Nombre de la marca" />
+                            </ContactField>
 
-                            <div className="space-y-2">
-                                <label htmlFor="asunto" className="text-sm font-medium">Motivo</label>
+                            <ContactField label="Motivo" htmlFor="asunto">
                                 <select
                                     id="asunto"
                                     value={form.motivo}
                                     onChange={(e) => setField("motivo", e.target.value)}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    className={CONTACT_SELECT_CLASS}
                                 >
                                     <option>Reportar greenwashing</option>
                                     <option>Sugerir inclusión de nueva marca</option>
@@ -173,67 +207,96 @@ export default function ContactoPage() {
                                     <option>Solicitar revisión documental</option>
                                     <option>Otros</option>
                                 </select>
-                            </div>
+                            </ContactField>
 
-                            <div className="space-y-2">
-                                <label htmlFor="evidencia-url" className="text-sm font-medium">Enlace principal de evidencia</label>
+                            <ContactField
+                                label="Enlace principal de evidencia"
+                                htmlFor="evidencia-url"
+                                hint="Acepta www... o https://... Si falta el protocolo, se añade automáticamente."
+                            >
                                 <Input
                                     id="evidencia-url"
+                                    className={CONTACT_INPUT_CLASS}
                                     type="text"
                                     value={form.evidenciaUrl}
                                     onChange={(e) => setField("evidenciaUrl", e.target.value)}
-                                    placeholder="www.ejemplo.com/documento o https://..."
+                                    placeholder="www.ejemplo.com/documento"
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    Formato aceptado: `www...` o `https://...` (si falta protocolo, lo añadimos automáticamente).
-                                </p>
-                            </div>
+                            </ContactField>
 
-                            <div className="space-y-2">
-                                <label htmlFor="evidencias-extra" className="text-sm font-medium">Evidencias adicionales (URLs separadas por coma o línea)</label>
+                            <ContactField
+                                label="Evidencias adicionales"
+                                htmlFor="evidencias-extra"
+                                hint="URLs separadas por coma o por línea."
+                            >
                                 <Textarea
                                     id="evidencias-extra"
                                     value={form.evidenciasExtra}
                                     onChange={(e) => setField("evidenciasExtra", e.target.value)}
                                     placeholder="www.doc1.pdf, https://doc2.pdf"
-                                    className="min-h-[90px]"
+                                    className={`${CONTACT_TEXTAREA_CLASS} min-h-[96px]`}
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    Puedes separar por comas o por líneas.
-                                </p>
-                            </div>
+                            </ContactField>
 
-                            <div className="space-y-2">
-                                <label htmlFor="mensaje" className="text-sm font-medium">Mensaje y contexto</label>
+                            <ContactField label="Mensaje y contexto" htmlFor="mensaje">
                                 <Textarea
                                     id="mensaje"
                                     value={form.mensaje}
                                     onChange={(e) => setField("mensaje", e.target.value)}
                                     placeholder="Describe qué debe validar el equipo y por qué..."
-                                    className="min-h-[150px]"
+                                    className={`${CONTACT_TEXTAREA_CLASS} min-h-[150px]`}
                                     required
                                 />
+                            </ContactField>
+
+                            <div className="pt-2">
+                                <Button type="submit" size="lg" className="h-12 w-full rounded-full bg-[#1A1A1A] text-[#F2F0E9] hover:bg-[#9E3F24]" disabled={sending}>
+                                    {sending ? "Enviando..." : "Enviar solicitud"}
+                                </Button>
+                                <p className="mt-4 text-center text-xs leading-relaxed text-[#1A1A1A]/70">
+                                    Revisaremos la documentación enviada y responderemos por email.
+                                </p>
                             </div>
-
-                            <Button type="submit" size="lg" className="w-full" disabled={sending}>
-                                {sending ? "Enviando..." : "Enviar solicitud"}
-                            </Button>
-                            <p className="text-xs text-muted-foreground text-center">
-                                Revisaremos la documentación enviada y responderemos por email.
-                            </p>
                         </form>
-                    </div>
+                    </section>
 
-                    <div className="bg-muted p-8 rounded-2xl h-fit">
-                        <h3 className="font-serif text-2xl font-bold mb-6">Qué valida el equipo admin</h3>
-                        <div className="space-y-5 text-sm text-muted-foreground">
-                            <p>Comprobación de la fuente original, fecha de vigencia y trazabilidad del documento.</p>
-                            <p>Coherencia entre evidencia, afirmaciones públicas y calificación ASG.</p>
-                            <p>Marcado final de la solicitud como pendiente, aprobada o rechazada con nota de revisión.</p>
+                    <aside className="h-fit rounded-[2rem] bg-[#1A1A1A] p-8 text-[#F2F0E9] lg:sticky lg:top-28">
+                        <h3 className="font-serif text-3xl font-light">Qué se valida</h3>
+                        <div className="mt-8 space-y-7">
+                            {reviewChecks.map((item, index) => (
+                                <div key={item} className="grid grid-cols-[3rem_1fr] gap-4">
+                                    <span className="font-serif text-4xl italic leading-none text-[#D9653E]">
+                                        {String(index + 1).padStart(2, "0")}
+                                    </span>
+                                    <p className="text-sm leading-relaxed text-[#F2F0E9]/75">{item}</p>
+                                </div>
+                            ))}
                         </div>
-                    </div>
+                    </aside>
                 </div>
-            </main>
+            </div>
+        </div>
+    );
+}
+
+function ContactField({
+    label,
+    htmlFor,
+    hint,
+    children,
+}: {
+    label: string;
+    htmlFor: string;
+    hint?: string;
+    children: ReactNode;
+}) {
+    return (
+        <div className="space-y-2">
+            <label htmlFor={htmlFor} className="text-sm font-semibold text-[#1A1A1A]/80">
+                {label}
+            </label>
+            {children}
+            {hint ? <p className="text-xs leading-relaxed text-[#1A1A1A]/70">{hint}</p> : null}
         </div>
     );
 }

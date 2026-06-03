@@ -2,6 +2,8 @@
 
 Verethique es una plataforma web para consultar, evaluar y administrar establecimientos de moda de cercania con criterios ASG: ambiental, social y gobernanza.
 
+Este repositorio forma parte de un Trabajo Final de Grado. El panel de administracion y sus credenciales se documentan dentro del README para facilitar la evaluacion academica y la reproduccion del proyecto.
+
 La aplicacion permite:
 
 - Consultar un directorio publico de marcas y establecimientos.
@@ -13,7 +15,7 @@ La aplicacion permite:
 
 ## Stack
 
-- Next.js 16
+- Next.js 16.2
 - React 19
 - TypeScript
 - Supabase
@@ -129,9 +131,21 @@ alter table public.brands
   add column if not exists social_indicadores text[] not null default '{}',
   add column if not exists gobernanza_indicadores text[] not null default '{}',
   add column if not exists asg_metodologia_version text not null default 'asg-v1';
+
+alter table public.brands
+  drop constraint if exists brands_ambiental_check,
+  drop constraint if exists brands_social_check,
+  drop constraint if exists brands_gobernanza_check;
+
+alter table public.brands
+  add constraint brands_ambiental_check check (ambiental >= 0 and ambiental <= 5),
+  add constraint brands_social_check check (social >= 0 and social <= 5),
+  add constraint brands_gobernanza_check check (gobernanza >= 0 and gobernanza <= 5);
 ```
 
 Las columnas `ambiental`, `social`, `gobernanza` y `calificacion_general` se calculan a partir de los indicadores ASG marcados en el panel de administracion.
+
+La escala ASG permite `0` porque una marca recien creada desde una solicitud aprobada puede empezar sin indicadores marcados. Si Supabase muestra un error como `brands_ambiental_check`, significa que la tabla conserva una restriccion antigua que no permite el valor `0`; ejecuta la migracion anterior y vuelve a aprobar la solicitud.
 
 ## Permisos de Supabase
 
@@ -190,12 +204,14 @@ Ruta:
 /admin
 ```
 
-Credenciales configuradas en el codigo:
+Credenciales del panel:
 
 ```text
 Usuario: admin
 Contrasena: modaetica2025
 ```
+
+Estas credenciales se mantienen visibles porque el proyecto tiene finalidad academica. El acceso permite revisar el funcionamiento completo del CRUD, las solicitudes y los indicadores ASG durante la evaluacion.
 
 Desde el panel se pueden:
 
@@ -218,27 +234,73 @@ Al guardar una marca, el sistema actualiza:
 - `/` -> inicio
 - `/metodologia` -> metodologia de evaluacion
 - `/directorio` -> listado de marcas publicadas
-- `/marca/[id]` -> ficha publica de marca
+- `/marca?id=ID_DE_MARCA` -> ficha publica de marca
 - `/contacto` -> formulario de revision
 - `/admin` -> panel de administracion
 
-## Ejecutar en local
+La ficha de marca usa una unica pagina estatica (`/marca`) y recibe el identificador mediante `?id=...`. De esta forma, un establecimiento nuevo creado desde `/admin` puede abrir su ficha sin generar una pagina fisica nueva por cada marca.
 
-Arranca el servidor de desarrollo:
+## Formas de prueba y despliegue
+
+El proyecto esta preparado para funcionar como sitio estatico. La configuracion `output: "export"` genera una carpeta `out/` con HTML, CSS, JavaScript y recursos listos para servir.
+
+Hay dos formas principales de probarlo o publicarlo.
+
+### Opcion 1: usar directamente la carpeta `out/`
+
+Esta opcion sirve cuando ya existe una carpeta `out/` generada. Es la forma mas sencilla para revisar el sitio sin montar todo el entorno de desarrollo.
+
+Usando el contenido del `out/` puede hacer dos cosas:
+
+- Probarlo en su equipo desde un IDE o terminal.
+- Subirlo directamente a un hosting estatico.
+
+Para probarlo en local, copia la carpeta `out/` completa y sirvela con un servidor estatico:
 
 ```bash
-npm run dev
+npx serve out -l 3000
 ```
 
-Abre:
+Despues abre:
 
 ```text
 http://localhost:3000
 ```
 
-## Build estatico
+No es recomendable abrir `index.html` directamente con doble clic, porque algunas rutas, scripts y llamadas al navegador pueden comportarse de forma distinta. La prueba correcta es servir la carpeta con un servidor local.
 
-El proyecto esta configurado con `output: "export"`.
+Para subirlo a un hosting, copia el contenido de `out/` al directorio publico del alojamiento, por ejemplo `public_html`,`httpdocs`, `www` o el nombre equivalente que use el proveedor.
+
+El contenido de `out/` ofrece la experiencia real del sitio publicado: directorio, fichas, contacto, metodologia y panel de administracion. Las conexiones con Supabase usan los valores publicos configurados en el momento del build. Si se quiere usar otro proyecto de Supabase, hay que generar de nuevo `out/` con las nuevas variables de entorno.
+
+### Opcion 2: despliegue completo desde el proyecto
+
+Esta opcion sirve cuando se parte del codigo completo y se quiere reproducir todo el proceso: instalar dependencias, configurar Supabase, generar el build y publicar el sitio.
+
+Entra en la carpeta del proyecto web:
+
+```bash
+cd web
+```
+
+Instala dependencias:
+
+```bash
+npm install
+```
+
+Crea y configura `.env.local` con los datos publicos de Supabase:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=TU_URL_DE_SUPABASE
+NEXT_PUBLIC_SUPABASE_ANON_KEY=TU_ANON_KEY_DE_SUPABASE
+```
+
+Comprueba el codigo:
+
+```bash
+npm run lint
+```
 
 Genera la version estatica:
 
@@ -252,7 +314,7 @@ El resultado se genera en:
 out/
 ```
 
-Para probar la version estatica en local:
+Para probar esa version antes de subirla:
 
 ```bash
 npx serve out -l 3000
@@ -264,9 +326,16 @@ Abre:
 http://localhost:3000
 ```
 
-## Publicacion en hosting estatico
+Cuando la prueba sea correcta, sube el contenido de `out/` al directorio publico del hosting.
 
-Sube el contenido de `out/` al directorio publico del hosting.
+El archivo `public/.htaccess` se copia automaticamente a `out/.htaccess` durante el build. Este archivo permite que un hosting Apache como Hostalia resuelva rutas limpias:
+
+```text
+/admin
+/directorio
+/marca?id=ID_DE_MARCA
+/contacto
+```
 
 En hostings que no resuelven rutas limpias de Next, usa las rutas `.html` generadas. Por ejemplo:
 
@@ -274,9 +343,24 @@ En hostings que no resuelven rutas limpias de Next, usa las rutas `.html` genera
 /admin.html
 /directorio.html
 /contacto.html
+/marca.html?id=ID_DE_MARCA
 ```
 
-Para rutas limpias como `/admin`, configura reglas de reescritura en el hosting.
+Si las rutas limpias no funcionan, comprueba que `.htaccess` se haya subido junto con el resto de archivos de `out/`.
+
+## Desarrollo local
+
+Para trabajar sobre el codigo durante el desarrollo, usa el servidor de Next:
+
+```bash
+npm run dev
+```
+
+Abre:
+
+```text
+http://localhost:3000
+```
 
 ## Estructura del proyecto
 
@@ -287,7 +371,7 @@ web/
       page.tsx
       metodologia/page.tsx
       directorio/page.tsx
-      marca/[id]/page.tsx
+      marca/page.tsx
       contacto/page.tsx
       admin/page.tsx
     components/
@@ -298,6 +382,7 @@ web/
       ratings.ts
       types.ts
   public/
+    .htaccess
   next.config.ts
   package.json
 ```
@@ -329,15 +414,18 @@ Si el directorio no muestra marcas:
 Si los indicadores ASG no se guardan:
 
 1. Comprueba que existen las columnas `ambiental_indicadores`, `social_indicadores` y `gobernanza_indicadores`.
-2. Revisa permisos de escritura sobre `brands`.
-3. Guarda una marca desde `/admin`.
-4. Recarga `/directorio` y la ficha correspondiente.
+2. Comprueba que las restricciones `brands_ambiental_check`, `brands_social_check` y `brands_gobernanza_check` permiten valores de `0` a `5`.
+3. Revisa permisos de escritura sobre `brands`.
+4. Guarda una marca desde `/admin`.
+5. Recarga `/directorio` y la ficha correspondiente.
+
+Si al aprobar una solicitud aparece un error de puntuaciones ASG a `0`, ejecuta la migracion del apartado de base de datos y vuelve a pulsar `Aprobar solicitud`. La solicitud ya puede estar marcada como aprobada, pero el panel volvera a intentar crear el establecimiento.
 
 Si una ficha no existe:
 
 1. Comprueba que la marca esta publicada.
-2. Ejecuta `npm run build` para regenerar las rutas estaticas.
-3. Revisa que la ruta use el `id` de la marca.
+2. Revisa que la URL incluya `?id=ID_DE_MARCA`.
+3. Revisa permisos de lectura sobre `brands`.
 
 ## Enlaces
 

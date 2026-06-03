@@ -1,4 +1,4 @@
-import { mockBrands } from "./data";
+import { fallbackBrands } from "./data";
 import type { Brand, RatingCategory } from "./types";
 import {
     calculateASGScores,
@@ -108,7 +108,7 @@ export const normalizeBrand = (row: DbBrandRow): BrandDetail => {
     };
 };
 
-export const mapMockBrand = (brand: Brand): BrandDetail => ({
+export const mapFallbackBrand = (brand: Brand): BrandDetail => ({
     ...brand,
     slug: "",
     categorias: brand.category ? [brand.category] : [],
@@ -121,4 +121,4 @@ export const mapMockBrand = (brand: Brand): BrandDetail => ({
     imageUrl: brand.imageUrl?.trim() ? brand.imageUrl : getFallbackImage(brand.id),
 });
 
-export const getFallbackBrandList = (): BrandDetail[] => mockBrands.map(mapMockBrand);
+export const getFallbackBrandList = (): BrandDetail[] => fallbackBrands.map(mapFallbackBrand);

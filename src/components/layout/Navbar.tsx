@@ -34,8 +34,7 @@ export function Navbar() {
         }
     }, [isOverlayOpen]);
 
-    const isHome = pathname === "/";
-    const isDarkAtTop = isHome; // Estado inicia del sitio
+    const isDarkAtTop = pathname === "/" || pathname === "/marca" || pathname === "/metodologia";
 
     return (
         <>
@@ -53,16 +52,18 @@ export function Navbar() {
                     </Link>
 
                     <nav aria-label="Navegación principal" className="hidden md:flex items-center gap-7 font-sans font-medium text-sm tracking-widest uppercase">
-                        {["Inicio", "Metodología"].map((item, i) => {
-                            const paths = ["/", "/metodologia"];
+                        {[
+                            { name: "Inicio", path: "/" },
+                            { name: "Metodología", path: "/metodologia" },
+                        ].map((item) => {
                             return (
                                 <Link
-                                    key={i}
-                                    href={paths[i]}
+                                    key={item.path}
+                                    href={item.path}
                                     className="relative group overflow-hidden py-1"
                                 >
-                                    <span className="relative z-10 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-[120%] block">{item}</span>
-                                    <span className="absolute inset-0 z-10 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] translate-y-[120%] group-hover:translate-y-0 flex items-center justify-center font-bold text-accent">{item}</span>
+                                    <span className="relative z-10 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-y-[120%] block">{item.name}</span>
+                                    <span aria-hidden="true" className="absolute inset-0 z-10 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] translate-y-[120%] group-hover:translate-y-0 flex items-center justify-center font-bold text-current">{item.name}</span>
                                 </Link>
                             );
                         })}
@@ -75,7 +76,7 @@ export function Navbar() {
                                 ${isScrolled || !isDarkAtTop ? "bg-primary text-primary-foreground hover:bg-primary/95" : "bg-background text-foreground hover:bg-background/90"}`
                             }
                         >
-                            <span className="relative z-10 group-hover:text-accent transition-colors duration-300">Directorio</span>
+                            <span className="relative z-10 transition-colors duration-300">Directorio</span>
                         </Link>
 
                         <Link
@@ -127,7 +128,7 @@ export function Navbar() {
                             <Link
                                 key={i}
                                 href={item.path}
-                                className="font-serif italic text-5xl sm:text-7xl lg:text-8xl text-primary hover:text-accent transition-colors duration-500 w-fit group flex items-center"
+                                className="font-serif italic text-5xl sm:text-7xl lg:text-8xl text-primary hover:text-[#9E3F24] transition-colors duration-500 w-fit group flex items-center"
                                 onClick={() => setIsOverlayOpen(false)}
                             >
                                 <span className="group-hover:translate-x-6 transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]">{item.name}</span>

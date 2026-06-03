@@ -169,7 +169,7 @@ export default function DirectorioPage() {
                     <div className="max-w-3xl">
                         <div className="flex items-center gap-3 mb-6">
                             <span className="w-8 h-px bg-[#CC5833]" />
-                            <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#CC5833]">Directorio</span>
+                            <span className="font-mono text-xs uppercase tracking-[0.2em] text-[#9E3F24]">Directorio</span>
                         </div>
                         <h1 className="font-serif italic text-5xl md:text-6xl lg:text-7xl font-light text-[#1A1A1A] mb-6 leading-tight">
                             Marcas de cercanía.
@@ -180,10 +180,14 @@ export default function DirectorioPage() {
 
                         {/* Buscador Premium */}
                         <div className="relative group max-w-2xl">
+                            <label htmlFor="directory-search" className="sr-only">
+                                Buscar marcas por nombre, categoría o palabra clave
+                            </label>
                             <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-[#1A1A1A]/40 group-focus-within:text-[#CC5833] transition-colors" />
+                                <Search className="h-5 w-5 text-[#1A1A1A]/60 group-focus-within:text-[#2E4036] transition-colors" />
                             </div>
                             <input
+                                id="directory-search"
                                 type="text"
                                 placeholder="Buscar por marca, categoría o palabra clave..."
                                 value={searchTerm}
@@ -201,7 +205,7 @@ export default function DirectorioPage() {
 
                     {/* Botón Filtros Móvil */}
                     <div className="w-full lg:hidden flex justify-between items-center mb-4">
-                        <span className="font-mono text-xs uppercase tracking-widest text-[#1A1A1A]/60">
+                        <span className="font-mono text-xs uppercase tracking-widest text-[#1A1A1A]/70">
                             {isLoading ? "Cargando..." : `${filteredBrands.length} resultados`}
                         </span>
                         <button
@@ -216,10 +220,10 @@ export default function DirectorioPage() {
                     <aside className={`w-full lg:w-1/4 lg:sticky lg:top-32 space-y-12 ${showMobileFilters ? "block" : "hidden lg:block"}`}>
 
                         {/* Categorías */}
-                        <div>
-                            <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[#1A1A1A]/50 mb-6 flex items-center gap-3">
+                        <fieldset>
+                            <legend className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[#1A1A1A]/70 mb-6 flex items-center gap-3">
                                 <span className="w-2 h-2 rounded-full bg-[#2E4036]" /> Índice de categorías
-                            </h3>
+                            </legend>
                             <div className="flex flex-col gap-3">
                                 {categories.map((cat) => (
                                     <label key={cat} className="flex items-center gap-3 cursor-pointer group">
@@ -230,19 +234,19 @@ export default function DirectorioPage() {
                                             onChange={() => setSelectedCategory(cat)}
                                             className="w-4 h-4 text-[#2E4036] bg-transparent border-[#1A1A1A]/20 focus:ring-[#2E4036] focus:ring-offset-[#F2F0E9] checked:border-[#2E4036] transition-all"
                                         />
-                                        <span className={`font-sans text-sm transition-colors ${selectedCategory === cat ? "text-[#1A1A1A] font-bold" : "text-[#1A1A1A]/60 group-hover:text-[#1A1A1A]"}`}>
+                                        <span className={`font-sans text-sm transition-colors ${selectedCategory === cat ? "text-[#1A1A1A] font-bold" : "text-[#1A1A1A]/70 group-hover:text-[#1A1A1A]"}`}>
                                             {cat}
                                         </span>
                                     </label>
                                 ))}
                             </div>
-                        </div>
+                        </fieldset>
 
                         {/* Valoración global */}
-                        <div>
-                            <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[#1A1A1A]/50 mb-6 flex items-center gap-3">
+                        <fieldset>
+                            <legend className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[#1A1A1A]/70 mb-6 flex items-center gap-3">
                                 <span className="w-2 h-2 rounded-full bg-[#CC5833]" /> Valoración general
-                            </h3>
+                            </legend>
                             <div className="flex flex-col gap-3">
                                 {ratings.map((rating) => {
                                     const Icon = ratingIcons[rating];
@@ -254,7 +258,7 @@ export default function DirectorioPage() {
                                                 onChange={() => toggleRating(rating)}
                                                 className="w-4 h-4 rounded text-[#2E4036] bg-transparent border-[#1A1A1A]/20 focus:ring-[#2E4036] focus:ring-offset-[#F2F0E9] checked:border-[#2E4036] transition-all"
                                             />
-                                            <span className="flex items-center text-[#1A1A1A]/60 group-hover:text-[#1A1A1A] transition-colors">
+                                            <span className="flex items-center text-[#1A1A1A]/70 group-hover:text-[#1A1A1A] transition-colors">
                                                 {Icon && <Icon className="w-5 h-5" aria-hidden="true" />}
                                                 <span className="sr-only">{rating}</span>
                                             </span>
@@ -262,23 +266,13 @@ export default function DirectorioPage() {
                                     );
                                 })}
                             </div>
-                        </div>
-
-                        {/* Certificaciones (Simulado) */}
-                        <div className="opacity-40 pointer-events-none">
-                            <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-[#1A1A1A]/50 mb-6 flex items-center gap-3">
-                                <span className="w-2 h-2 rounded-full bg-[#1A1A1A]/40" /> Certificaciones <span className="text-[8px] italic tracking-normal lowercase ml-2">(próximamente)</span>
-                            </h3>
-                            <div className="flex flex-col gap-3">
-                                <label className="flex items-center gap-3"><input type="checkbox" className="w-4 h-4 rounded border-[#1A1A1A]/20" disabled /><span className="font-sans text-sm">GOTS</span></label>
-                                <label className="flex items-center gap-3"><input type="checkbox" className="w-4 h-4 rounded border-[#1A1A1A]/20" disabled /><span className="font-sans text-sm">Comercio Justo</span></label>
-                            </div>
-                        </div>
+                        </fieldset>
 
                     </aside>
 
                     {/* Rejilla de resultados */}
-                    <main className="w-full lg:w-3/4">
+                        <div className="w-full lg:w-3/4">
+                        <h2 className="sr-only">Resultados del directorio</h2>
                         {(statusMessage || statusError) && (
                             <div
                                 className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
@@ -297,11 +291,11 @@ export default function DirectorioPage() {
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2E4036] opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2E4036]"></span>
                                 </span>
-                                <span className="font-mono text-xs uppercase tracking-widest text-[#1A1A1A]/60">Mostrando <strong className="text-[#1A1A1A]">{filteredBrands.length}</strong> entradas</span>
+                                <span className="font-mono text-xs uppercase tracking-widest text-[#1A1A1A]/70">Mostrando <strong className="text-[#1A1A1A]">{filteredBrands.length}</strong> entradas</span>
                             </div>
 
                             <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-widest">
-                                <span className="text-[#1A1A1A]/40">Ordenar por:</span>
+                                <span className="text-[#1A1A1A]/70">Ordenar por:</span>
                                 <div className="relative">
                                     <select
                                         value={sortBy}
@@ -328,9 +322,9 @@ export default function DirectorioPage() {
                             </div>
                         ) : !isLoading ? (
                             <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[2rem] border border-[#D1CFC7] shadow-sm text-center px-6">
-                                <h3 className="font-serif italic text-3xl font-light text-[#1A1A1A] mb-4">No se encontraron resultados en el archivo</h3>
-                                <p className="font-sans text-[#1A1A1A]/60 max-w-md mx-auto mb-8 leading-relaxed">
-                                    Nuestro motor de telemetría no encontró marcas que coincidan con tus criterios. Ajusta los filtros o explora nuestra metodología.
+                                <h3 className="font-serif italic text-3xl font-light text-[#1A1A1A] mb-4">No se encontraron resultados</h3>
+                                <p className="font-sans text-[#1A1A1A]/70 max-w-md mx-auto mb-8 leading-relaxed">
+                                    No hay marcas que coincidan con tus criterios. Ajusta los filtros o explora la metodologia.
                                 </p>
                                 <button
                                     onClick={() => {
@@ -347,12 +341,12 @@ export default function DirectorioPage() {
 
                         {!isLoading && filteredBrands.length > 0 && (
                             <div className="mt-20 pt-10 border-t border-[#D1CFC7] text-center">
-                                <button className="px-8 py-4 rounded-full border border-[#1A1A1A]/20 font-sans text-xs font-bold uppercase tracking-widest text-[#1A1A1A]/40 cursor-not-allowed">
+                                <button type="button" disabled className="px-8 py-4 rounded-full border border-[#1A1A1A]/20 font-sans text-xs font-bold uppercase tracking-widest text-[#1A1A1A]/70 cursor-not-allowed">
                                     Fin del directorio
                                 </button>
                             </div>
                         )}
-                    </main>
+                        </div>
 
                 </div>
             </div>

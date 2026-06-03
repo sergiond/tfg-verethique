@@ -33,6 +33,7 @@ yarn-error.log*
 .preview-serve*.log
 axe-report.json
 /output/
+/explicaciones.md
 
 # env files (can opt-in for committing if needed)
 .env*

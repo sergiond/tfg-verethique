@@ -1,39 +1,18 @@
 ﻿"use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { BrandCard } from "@/components/directorio/BrandCard";
 import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { ratingIcons } from "@/lib/ratings";
-import type { Brand, RatingCategory } from "@/lib/types";
-
-type DirectoryBrand = Brand & {
-    slug: string;
-    categorias: string[];
-    pais: string;
-    ciudad: string;
-    web: string;
-    instagram: string;
-    tipoTienda: string[];
-};
-
-type DbBrandRow = {
-    id: string;
-    slug: string | null;
-    nombre: string | null;
-    eslogan: string | null;
-    descripcion: string | null;
-    calificacion_general: string | null;
-    ambiental: number | null;
-    social: number | null;
-    gobernanza: number | null;
-    categorias: string[] | string | null;
-    tipo_tienda: string[] | string | null;
-    pais: string | null;
-    ciudad: string | null;
-    web: string | null;
-    instagram: string | null;
-};
+import type { RatingCategory } from "@/lib/types";
+import {
+    BRAND_SELECT_LEGACY,
+    BRAND_SELECT_WITH_INDICATORS,
+    normalizeBrand,
+    type BrandDetail,
+    type DbBrandRow,
+} from "@/lib/brand-data";
 
 type SortOption = "relevancia" | "nombre_asc" | "nombre_desc" | "rating_desc" | "rating_asc";
 
@@ -43,50 +22,6 @@ const hasSupabaseConfig = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabaseClient = hasSupabaseConfig
     ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
-const VALID_RATINGS: RatingCategory[] = ["Genial", "Bueno", "Regular", "Evitar"];
-
-const parseList = (value: string[] | string | null | undefined): string[] => {
-    if (Array.isArray(value)) return value.filter(Boolean);
-    if (typeof value === "string") {
-        return value.split(",").map((v) => v.trim()).filter(Boolean);
-    }
-    return [];
-};
-
-const normalizeRating = (value: string | null): RatingCategory => {
-    return VALID_RATINGS.includes(value as RatingCategory) ? (value as RatingCategory) : "Regular";
-};
-
-const normalizeBrand = (row: DbBrandRow): DirectoryBrand => {
-    const categorias = parseList(row.categorias);
-    const tipoTienda = parseList(row.tipo_tienda);
-    const primaryCategory = categorias[0] ?? "Sin categoría";
-
-    return {
-        id: row.id,
-        slug: row.slug ?? "",
-        name: row.nombre ?? row.slug ?? "Sin nombre",
-        slogan: row.eslogan ?? "",
-        description: row.descripcion ?? "",
-        overallRating: normalizeRating(row.calificacion_general),
-        category: primaryCategory,
-        asgScores: {
-            ambiental: Number(row.ambiental ?? 0),
-            social: Number(row.social ?? 0),
-            gobernanza: Number(row.gobernanza ?? 0),
-        },
-        imageUrl: "",
-        isVegan: false,
-        isFairTrade: false,
-        materials: [],
-        categorias,
-        tipoTienda,
-        pais: row.pais ?? "",
-        ciudad: row.ciudad ?? "",
-        web: row.web ?? "",
-        instagram: row.instagram ?? "",
-    };
-};
 
 /**
  * `DirectoryPage`
@@ -95,7 +30,7 @@ const normalizeBrand = (row: DbBrandRow): DirectoryBrand => {
  * Carga marcas publicadas desde Supabase y aplica filtros combinados.
  */
 export default function DirectorioPage() {
-    const [brands, setBrands] = useState<DirectoryBrand[]>([]);
+    const [brands, setBrands] = useState<BrandDetail[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [statusMessage, setStatusMessage] = useState("");
     const [statusError, setStatusError] = useState("");
@@ -105,54 +40,64 @@ export default function DirectorioPage() {
     const [sortBy, setSortBy] = useState<SortOption>("relevancia");
     const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-    useEffect(() => {
-        let mounted = true;
+    const loadBrands = useCallback(async () => {
+        setIsLoading(true);
+        setStatusError("");
+        setStatusMessage("Cargando marcas...");
 
-        const loadBrands = async () => {
-            setIsLoading(true);
-            setStatusError("");
-            setStatusMessage("Cargando marcas...");
+        if (!supabaseClient) {
+            setBrands([]);
+            setStatusMessage("");
+            setStatusError("Falta configuración de Supabase en variables NEXT_PUBLIC.");
+            setIsLoading(false);
+            return;
+        }
 
-            if (!supabaseClient) {
-                setBrands([]);
-                setStatusMessage("");
-                setStatusError("Falta configuración de Supabase en variables NEXT_PUBLIC.");
-                setIsLoading(false);
-                return;
-            }
+        const { data, error } = await supabaseClient
+            .from("brands")
+            .select(BRAND_SELECT_WITH_INDICATORS)
+            .eq("published", true)
+            .order("nombre", { ascending: true });
+        let rows = (data ?? []) as DbBrandRow[];
+        let queryError = error;
 
-            const { data, error } = await supabaseClient
+        if (error) {
+            const legacyResult = await supabaseClient
                 .from("brands")
-                .select(
-                    "id, slug, nombre, eslogan, descripcion, calificacion_general, ambiental, social, gobernanza, categorias, tipo_tienda, pais, ciudad, web, instagram, published"
-                )
+                .select(BRAND_SELECT_LEGACY)
                 .eq("published", true)
                 .order("nombre", { ascending: true });
+            rows = (legacyResult.data ?? []) as DbBrandRow[];
+            queryError = legacyResult.error;
+        }
 
-            if (!mounted) return;
-
-            if (error) {
-                console.error("Error cargando marcas desde Supabase", error);
-                setBrands([]);
-                setStatusMessage("");
-                setStatusError("No se pudieron cargar las marcas. Vuelve a intentarlo.");
-                setIsLoading(false);
-                return;
-            }
-
-            const normalized = ((data ?? []) as DbBrandRow[]).map(normalizeBrand);
-            setBrands(normalized);
-            setStatusError("");
-            setStatusMessage(normalized.length ? "" : "No hay marcas publicadas todavía.");
+        if (queryError) {
+            console.error("Error cargando marcas desde Supabase", queryError);
+            setBrands([]);
+            setStatusMessage("");
+            setStatusError("No se pudieron cargar las marcas. Vuelve a intentarlo.");
             setIsLoading(false);
-        };
+            return;
+        }
 
-        loadBrands();
-
-        return () => {
-            mounted = false;
-        };
+        const normalized = rows.map(normalizeBrand);
+        setBrands(normalized);
+        setStatusError("");
+        setStatusMessage(normalized.length ? "" : "No hay marcas publicadas todavía.");
+        setIsLoading(false);
     }, []);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void loadBrands();
+
+        const handleFocus = () => {
+            void loadBrands();
+        };
+
+        window.addEventListener("focus", handleFocus);
+        return () => window.removeEventListener("focus", handleFocus);
+    }, [loadBrands]);
 
     const categories = ["Todas", ...Array.from(new Set(brands.map((b) => b.category)))];
     const ratings = ["Genial", "Bueno", "Regular", "Evitar"];

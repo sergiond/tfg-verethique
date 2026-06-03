@@ -6,6 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    ASG_DIMENSIONS,
+    ASG_INDICATOR_GROUPS,
+    calculateASGScores,
+    calculateOverallRating,
+    emptyASGIndicatorEvidence,
+    normalizeASGIndicatorEvidence,
+    type ASGDimension,
+    type ASGIndicatorEvidence,
+} from "@/lib/asg-indicators";
 
 type ReviewStatus = "pendiente" | "aprobada" | "rechazada";
 type BrandRating = "Genial" | "Bueno" | "Regular" | "Evitar";
@@ -35,6 +45,9 @@ type BrandRow = {
     ambiental: number | null;
     social: number | null;
     gobernanza: number | null;
+    ambiental_indicadores?: string[] | string | null;
+    social_indicadores?: string[] | string | null;
+    gobernanza_indicadores?: string[] | string | null;
     categorias: string[] | string | null;
     tipo_tienda: string[] | string | null;
     pais: string | null;
@@ -50,10 +63,7 @@ type BrandFormState = {
     nombre: string;
     eslogan: string;
     descripcion: string;
-    calificacion_general: BrandRating;
-    ambiental: string;
-    social: string;
-    gobernanza: string;
+    asgIndicators: ASGIndicatorEvidence;
     categorias: string;
     tipo_tienda_online: boolean;
     tipo_tienda_fisica: boolean;
@@ -73,6 +83,9 @@ type BrandInsertPayload = {
     ambiental: number;
     social: number;
     gobernanza: number;
+    ambiental_indicadores: string[];
+    social_indicadores: string[];
+    gobernanza_indicadores: string[];
     categorias: string[];
     tipo_tienda: string[];
     pais: string | null;
@@ -91,6 +104,8 @@ const ADMIN_USER = "admin";
 const ADMIN_PASS = "modaetica2025";
 const SESSION_KEY = "me_admin_logged";
 const REQUESTS_TABLE = "review_requests";
+const BRAND_SELECT_COLUMNS = "id, slug, nombre, eslogan, descripcion, calificacion_general, ambiental, social, gobernanza, ambiental_indicadores, social_indicadores, gobernanza_indicadores, categorias, tipo_tienda, pais, ciudad, web, instagram, published";
+const BRAND_SELECT_LEGACY_COLUMNS = "id, slug, nombre, eslogan, descripcion, calificacion_general, ambiental, social, gobernanza, categorias, tipo_tienda, pais, ciudad, web, instagram, published";
 
 const parseList = (value: string[] | string | null | undefined): string[] => {
     if (Array.isArray(value)) return value.filter(Boolean);
@@ -99,6 +114,13 @@ const parseList = (value: string[] | string | null | undefined): string[] => {
 };
 
 const parseCsv = (value: string): string[] => value.split(",").map((v) => v.trim()).filter(Boolean);
+
+const toIndicatorEvidence = (brand: Pick<BrandRow, "ambiental_indicadores" | "social_indicadores" | "gobernanza_indicadores">): ASGIndicatorEvidence =>
+    normalizeASGIndicatorEvidence({
+        ambiental: parseList(brand.ambiental_indicadores),
+        social: parseList(brand.social_indicadores),
+        gobernanza: parseList(brand.gobernanza_indicadores),
+    });
 
 const toSlug = (value: string): string =>
     value
@@ -115,10 +137,7 @@ const emptyBrandForm = (): BrandFormState => ({
     nombre: "",
     eslogan: "",
     descripcion: "",
-    calificacion_general: "Genial",
-    ambiental: "",
-    social: "",
-    gobernanza: "",
+    asgIndicators: emptyASGIndicatorEvidence(),
     categorias: "",
     tipo_tienda_online: false,
     tipo_tienda_fisica: false,
@@ -152,10 +171,13 @@ const toBrandPayloadFromRequest = (request: ReviewRequest): BrandInsertPayload =
         nombre: draft.nombre || `Marca ${request.id.slice(0, 8)}`,
         eslogan: null,
         descripcion: draft.descripcion || null,
-        calificacion_general: "Regular",
-        ambiental: 3,
-        social: 3,
-        gobernanza: 3,
+        calificacion_general: "Evitar",
+        ambiental: 0,
+        social: 0,
+        gobernanza: 0,
+        ambiental_indicadores: [],
+        social_indicadores: [],
+        gobernanza_indicadores: [],
         categorias: [],
         tipo_tienda: [],
         pais: null,
@@ -174,10 +196,7 @@ const toBrandForm = (brand: BrandRow): BrandFormState => {
         nombre: brand.nombre ?? "",
         eslogan: brand.eslogan ?? "",
         descripcion: brand.descripcion ?? "",
-        calificacion_general: brand.calificacion_general ?? "Genial",
-        ambiental: String(brand.ambiental ?? ""),
-        social: String(brand.social ?? ""),
-        gobernanza: String(brand.gobernanza ?? ""),
+        asgIndicators: toIndicatorEvidence(brand),
         categorias: parseList(brand.categorias).join(","),
         tipo_tienda_online: tipos.includes("online"),
         tipo_tienda_fisica: tipos.includes("fisica"),
@@ -193,6 +212,12 @@ const statusMap: Record<ReviewStatus, { label: string; badge: string }> = {
     pendiente: { label: "Pendiente", badge: "bg-amber-100 text-amber-800 border-amber-200" },
     aprobada: { label: "Aprobada", badge: "bg-emerald-100 text-emerald-800 border-emerald-200" },
     rechazada: { label: "Rechazada", badge: "bg-rose-100 text-rose-800 border-rose-200" },
+};
+
+const dimensionLabels: Record<ASGDimension, string> = {
+    ambiental: "Ambiental",
+    social: "Social",
+    gobernanza: "Gobernanza",
 };
 
 export default function AdminDashboard() {
@@ -216,6 +241,7 @@ export default function AdminDashboard() {
     const [savingBrand, setSavingBrand] = useState(false);
     const [statusInfo, setStatusInfo] = useState("");
     const [statusError, setStatusError] = useState("");
+    const [isAsgSchemaReady, setIsAsgSchemaReady] = useState<boolean | null>(null);
 
     const selectedRequest = useMemo(
         () => requests.find((r) => r.id === selectedRequestId) ?? null,
@@ -228,6 +254,15 @@ export default function AdminDashboard() {
         const rejected = requests.filter((r) => r.status === "rechazada").length;
         return { total: requests.length, pending, approved, rejected };
     }, [requests]);
+
+    const calculatedScores = useMemo(
+        () => calculateASGScores(brandForm.asgIndicators),
+        [brandForm.asgIndicators]
+    );
+    const calculatedRating = useMemo(
+        () => calculateOverallRating(calculatedScores),
+        [calculatedScores]
+    );
 
     const setAlert = (info = "", error = "") => {
         setStatusInfo(info);
@@ -272,15 +307,28 @@ export default function AdminDashboard() {
 
         const { data, error } = await supabase
             .from("brands")
-            .select("id, slug, nombre, eslogan, descripcion, calificacion_general, ambiental, social, gobernanza, categorias, tipo_tienda, pais, ciudad, web, instagram, published")
+            .select(BRAND_SELECT_COLUMNS)
             .order("nombre", { ascending: true });
+        let rows = (data ?? []) as BrandRow[];
+        let queryError = error;
 
         if (error) {
-            console.error("Error cargando establecimientos", error);
+            setIsAsgSchemaReady(false);
+            const legacyResult = await supabase
+                .from("brands")
+                .select(BRAND_SELECT_LEGACY_COLUMNS)
+                .order("nombre", { ascending: true });
+            rows = (legacyResult.data ?? []) as BrandRow[];
+            queryError = legacyResult.error;
+        } else {
+            setIsAsgSchemaReady(true);
+        }
+
+        if (queryError) {
+            console.error("Error cargando establecimientos", queryError);
             return setAlert("", "No se pudieron cargar los establecimientos.");
         }
 
-        const rows = (data ?? []) as BrandRow[];
         setBrands(rows);
         if (!selectedBrandId && rows[0]) {
             setSelectedBrandId(rows[0].id);
@@ -320,6 +368,25 @@ export default function AdminDashboard() {
         setAlert();
     };
 
+    const toggleASGIndicator = (dimension: ASGDimension, indicatorId: string) => {
+        setBrandForm((current) => {
+            const selected = new Set(current.asgIndicators[dimension]);
+            if (selected.has(indicatorId)) {
+                selected.delete(indicatorId);
+            } else {
+                selected.add(indicatorId);
+            }
+
+            return {
+                ...current,
+                asgIndicators: {
+                    ...current.asgIndicators,
+                    [dimension]: Array.from(selected),
+                },
+            };
+        });
+    };
+
     const saveReview = async (nextStatus?: ReviewStatus) => {
         if (!supabase || !selectedRequest) return;
         setSavingReview(true);
@@ -356,29 +423,40 @@ export default function AdminDashboard() {
         const draft = toBrandDraftFromRequest(updated);
         const { data: existingBrand, error: existingError } = await supabase
             .from("brands")
-            .select("id, slug, nombre, eslogan, descripcion, calificacion_general, ambiental, social, gobernanza, categorias, tipo_tienda, pais, ciudad, web, instagram, published")
+            .select(BRAND_SELECT_COLUMNS)
             .eq("slug", draft.slug)
             .maybeSingle();
+        let brandForEdit: BrandRow | null = (existingBrand as BrandRow | null) ?? null;
+        let existingQueryError = existingError;
 
         if (existingError) {
+            const legacyResult = await supabase
+                .from("brands")
+                .select(BRAND_SELECT_LEGACY_COLUMNS)
+                .eq("slug", draft.slug)
+                .maybeSingle();
+            brandForEdit = (legacyResult.data as BrandRow | null) ?? null;
+            existingQueryError = legacyResult.error;
+        }
+
+        if (existingQueryError) {
             setSavingReview(false);
-            console.error("Error comprobando establecimiento existente", existingError);
+            console.error("Error comprobando establecimiento existente", existingQueryError);
             return setAlert("Solicitud aprobada, pero no se pudo preparar el establecimiento para edición.", "");
         }
 
-        let brandForEdit: BrandRow | null = (existingBrand as BrandRow | null) ?? null;
         if (!brandForEdit) {
             const brandPayload = toBrandPayloadFromRequest(updated);
             const { data: insertedBrand, error: insertError } = await supabase
                 .from("brands")
                 .insert(brandPayload)
-                .select("id, slug, nombre, eslogan, descripcion, calificacion_general, ambiental, social, gobernanza, categorias, tipo_tienda, pais, ciudad, web, instagram, published")
+                .select(BRAND_SELECT_COLUMNS)
                 .single();
 
             if (insertError) {
                 setSavingReview(false);
                 console.error("Error creando establecimiento desde solicitud aprobada", insertError);
-                return setAlert("Solicitud aprobada, pero falló la creación automática del establecimiento.", "");
+                return setAlert("Solicitud aprobada, pero falló la creación automática del establecimiento. Revisa la migración ASG en Supabase.", "");
             }
             brandForEdit = insertedBrand as BrandRow;
         }
@@ -397,6 +475,9 @@ export default function AdminDashboard() {
     const saveBrand = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!supabase) return;
+        if (isAsgSchemaReady === false) {
+            return setAlert("", "Migración ASG pendiente en Supabase: faltan columnas de indicadores. Ejecuta el SQL del apartado 8.1 del README antes de guardar checks.");
+        }
 
         setSavingBrand(true);
         const payload = {
@@ -404,10 +485,13 @@ export default function AdminDashboard() {
             nombre: brandForm.nombre.trim(),
             eslogan: brandForm.eslogan.trim() || null,
             descripcion: brandForm.descripcion.trim() || null,
-            calificacion_general: brandForm.calificacion_general,
-            ambiental: Number(brandForm.ambiental),
-            social: Number(brandForm.social),
-            gobernanza: Number(brandForm.gobernanza),
+            calificacion_general: calculatedRating,
+            ambiental: calculatedScores.ambiental,
+            social: calculatedScores.social,
+            gobernanza: calculatedScores.gobernanza,
+            ambiental_indicadores: brandForm.asgIndicators.ambiental,
+            social_indicadores: brandForm.asgIndicators.social,
+            gobernanza_indicadores: brandForm.asgIndicators.gobernanza,
             categorias: parseCsv(brandForm.categorias),
             tipo_tienda: [...(brandForm.tipo_tienda_online ? ["online"] : []), ...(brandForm.tipo_tienda_fisica ? ["fisica"] : [])],
             pais: brandForm.pais.trim().toUpperCase() || null,
@@ -418,19 +502,26 @@ export default function AdminDashboard() {
         };
 
         const result = brandForm.id
-            ? await supabase.from("brands").update(payload).eq("id", brandForm.id).select().single()
-            : await supabase.from("brands").insert(payload).select().single();
+            ? await supabase.from("brands").update(payload).eq("id", brandForm.id).select(BRAND_SELECT_COLUMNS).single()
+            : await supabase.from("brands").insert(payload).select(BRAND_SELECT_COLUMNS).single();
 
         setSavingBrand(false);
         if (result.error) {
             console.error("Error guardando establecimiento", result.error);
-            return setAlert("", "No se pudo guardar el establecimiento.");
+            return setAlert("", "No se pudo guardar el establecimiento. Revisa que la migración ASG del README esté aplicada en Supabase.");
         }
 
+        const savedBrand = result.data as BrandRow;
+        setBrands((prev) => {
+            const exists = prev.some((brand) => brand.id === savedBrand.id);
+            const next = exists
+                ? prev.map((brand) => (brand.id === savedBrand.id ? savedBrand : brand))
+                : [...prev, savedBrand];
+            return next.sort((a, b) => (a.nombre ?? "").localeCompare(b.nombre ?? "", "es", { sensitivity: "base" }));
+        });
+        setSelectedBrandId(savedBrand.id);
+        setBrandForm(toBrandForm(savedBrand));
         setAlert(brandForm.id ? "Establecimiento actualizado." : "Establecimiento creado.", "");
-        setBrandForm(emptyBrandForm());
-        setSelectedBrandId(null);
-        await loadBrands();
     };
 
     const deleteBrand = async () => {
@@ -485,6 +576,12 @@ export default function AdminDashboard() {
             {(statusInfo || statusError) && (
                 <div className={`mb-6 rounded-xl border px-4 py-3 text-sm ${statusError ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
                     {statusError || statusInfo}
+                </div>
+            )}
+
+            {isAsgSchemaReady === false && (
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    Migración ASG pendiente en Supabase. Las marcas se pueden leer, pero los checks no se pueden guardar hasta añadir las columnas `ambiental_indicadores`, `social_indicadores` y `gobernanza_indicadores`.
                 </div>
             )}
 
@@ -585,15 +682,23 @@ export default function AdminDashboard() {
                     </div>
                     <Field label="Eslogan" htmlFor="eslogan"><Input id="eslogan" value={brandForm.eslogan} onChange={(e) => setBrandForm((p) => ({ ...p, eslogan: e.target.value }))} /></Field>
                     <Field label="Descripción" htmlFor="descripcion"><Textarea id="descripcion" className="min-h-[100px]" value={brandForm.descripcion} onChange={(e) => setBrandForm((p) => ({ ...p, descripcion: e.target.value }))} /></Field>
-                    <div className="grid gap-3 md:grid-cols-4">
-                        <Field label="Calificación" htmlFor="calificacion_general">
-                            <select id="calificacion_general" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={brandForm.calificacion_general} onChange={(e) => setBrandForm((p) => ({ ...p, calificacion_general: e.target.value as BrandRating }))}>
-                                <option value="Genial">Genial</option><option value="Bueno">Bueno</option><option value="Regular">Regular</option><option value="Evitar">Evitar</option>
-                            </select>
-                        </Field>
-                        <Field label="Ambiental" htmlFor="ambiental"><Input id="ambiental" type="number" min={1} max={5} value={brandForm.ambiental} onChange={(e) => setBrandForm((p) => ({ ...p, ambiental: e.target.value }))} required /></Field>
-                        <Field label="Social" htmlFor="social"><Input id="social" type="number" min={1} max={5} value={brandForm.social} onChange={(e) => setBrandForm((p) => ({ ...p, social: e.target.value }))} required /></Field>
-                        <Field label="Gobernanza" htmlFor="gobernanza"><Input id="gobernanza" type="number" min={1} max={5} value={brandForm.gobernanza} onChange={(e) => setBrandForm((p) => ({ ...p, gobernanza: e.target.value }))} required /></Field>
+                    <div className="rounded-xl border border-[#D1CFC7] bg-[#F2F0E9]/30 p-4">
+                        <div className="mb-4 grid gap-3 md:grid-cols-4">
+                            <ScoreBox label="Ambiental" value={calculatedScores.ambiental} />
+                            <ScoreBox label="Social" value={calculatedScores.social} />
+                            <ScoreBox label="Gobernanza" value={calculatedScores.gobernanza} />
+                            <ScoreBox label="Valoración" value={calculatedRating} />
+                        </div>
+                        <div className="grid gap-4 lg:grid-cols-3">
+                            {ASG_DIMENSIONS.map((dimension) => (
+                                <IndicatorChecklist
+                                    key={dimension}
+                                    dimension={dimension}
+                                    selected={brandForm.asgIndicators[dimension]}
+                                    onToggle={toggleASGIndicator}
+                                />
+                            ))}
+                        </div>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                         <Field label="Categorías (coma)" htmlFor="categorias"><Input id="categorias" value={brandForm.categorias} onChange={(e) => setBrandForm((p) => ({ ...p, categorias: e.target.value }))} /></Field>
@@ -645,6 +750,49 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor: string; c
             <label htmlFor={htmlFor} className="text-sm font-medium text-[#1A1A1A]/80">{label}</label>
             {children}
         </div>
+    );
+}
+
+function ScoreBox({ label, value }: { label: string; value: number | string }) {
+    return (
+        <div className="rounded-lg border border-[#D1CFC7] bg-white px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1A1A1A]/50">{label}</p>
+            <p className="mt-1 text-lg font-bold text-[#1A1A1A]">{value}</p>
+        </div>
+    );
+}
+
+function IndicatorChecklist({
+    dimension,
+    selected,
+    onToggle,
+}: {
+    dimension: ASGDimension;
+    selected: string[];
+    onToggle: (dimension: ASGDimension, indicatorId: string) => void;
+}) {
+    return (
+        <fieldset className="rounded-lg border border-[#D1CFC7] bg-white p-4">
+            <legend className="px-1 text-xs font-semibold uppercase tracking-widest text-[#1A1A1A]/60">
+                {dimensionLabels[dimension]}
+            </legend>
+            <div className="mt-3 space-y-3">
+                {ASG_INDICATOR_GROUPS[dimension].map((indicator) => (
+                    <label key={indicator.id} className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-[#F2F0E9]/60">
+                        <input
+                            type="checkbox"
+                            checked={selected.includes(indicator.id)}
+                            onChange={() => onToggle(dimension, indicator.id)}
+                            className="mt-1 h-4 w-4 rounded border-[#1A1A1A]/30 text-[#2E4036] focus:ring-[#2E4036]"
+                        />
+                        <span>
+                            <span className="block text-sm font-semibold text-[#1A1A1A]">{indicator.title}</span>
+                            <span className="mt-1 block text-xs leading-relaxed text-[#1A1A1A]/60">{indicator.evidenceHint}</span>
+                        </span>
+                    </label>
+                ))}
+            </div>
+        </fieldset>
     );
 }
 
